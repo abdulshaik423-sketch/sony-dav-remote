@@ -108,4 +108,67 @@ public class MainActivity extends Activity {
         p.addView(note);
 
         sv.addView(p);
-        outer.addView(sv, new
+        outer.addView(sv, new LinearLayout.LayoutParams(-1, -1));
+        setContentView(outer);
+    }
+
+    private LinearLayout row() {
+        LinearLayout r = new LinearLayout(this);
+        r.setOrientation(LinearLayout.HORIZONTAL);
+        r.setLayoutParams(new LinearLayout.LayoutParams(-1, 60));
+        return r;
+    }
+
+    private void send(int addr, int cmd, String text) {
+        if (ir != null && ir.hasIrEmitter()) {
+            try {
+                int[] pattern = getPattern(addr, cmd);
+                ir.transmit(38000, pattern);
+                updateStatus("Sent: " + text);
+            } catch (Exception e) {
+                updateStatus("Error sending: " + text);
+            }
+        } else {
+            updateStatus("IR not available");
+        }
+    }
+
+    private int[] getPattern(int addr, int cmd) {
+        // Sony SIRCS protocol pattern (simplified)
+        List<Integer> pattern = new ArrayList<>();
+        pattern.add(2400);
+        pattern.add(600);
+        
+        // Address bits
+        for (int i = 0; i < 7; i++) {
+            if ((addr & (1 << i)) != 0) {
+                pattern.add(1200);
+            } else {
+                pattern.add(600);
+            }
+            pattern.add(600);
+        }
+        
+        // Command bits
+        for (int i = 0; i < 7; i++) {
+            if ((cmd & (1 << i)) != 0) {
+                pattern.add(1200);
+            } else {
+                pattern.add(600);
+            }
+            pattern.add(600);
+        }
+        
+        pattern.add(600);
+        
+        int[] result = new int[pattern.size()];
+        for (int i = 0; i < pattern.size(); i++) {
+            result[i] = pattern.get(i);
+        }
+        return result;
+    }
+
+    private void updateStatus(String msg) {
+        runOnUiThread(() -> status.setText("IR status: " + msg));
+    }
+}
